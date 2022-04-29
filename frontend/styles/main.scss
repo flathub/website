@@ -77,6 +77,28 @@
   }
 }
 
+@font-face {
+  font-family: 'Inter';
+  font-style:  normal;
+  font-weight: 400;
+  src: url("https://dl.flathub.org/repo/assets/Inter-3.19/Inter-Regular.woff2") format("woff2"),
+       url("https://dl.flathub.org/repo/assets/Inter-3.19/Inter-Regular.woff") format("woff");
+}
+@font-face {
+  font-family: 'Inter';
+  font-style:  bold;
+  font-weight: 600;
+  src: url("https://dl.flathub.org/repo/assets/Inter-3.19/Inter-Bold.woff2") format("woff2"),
+       url("https://dl.flathub.org/repo/assets/Inter-3.19/Inter-Bold.woff") format("woff");
+}
+@font-face {
+  font-family: 'Inter';
+  font-style:  italic;
+  font-weight: 400;
+  src: url("https://dl.flathub.org/repo/assets/Inter-3.19/Inter-Italic.woff2") format("woff2"),
+       url("https://dl.flathub.org/repo/assets/Inter-3.19/Inter-Italic.woff") format("woff");
+}
+
 :root {
   --white: rgba(255, 255, 255, 0.87);
   --white-10: hsl(30, 10%, 96.1%);
