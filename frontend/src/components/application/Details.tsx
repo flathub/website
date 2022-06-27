@@ -19,6 +19,7 @@ import Lightbox from "react-image-lightbox"
 import ApplicationSection from "./ApplicationSection"
 import LogoImage from "../LogoImage"
 import { calculateHumanReadableSize } from "../../size"
+import Permissions from "./Permissions"
 
 import "react-image-lightbox/style.css" // This only needs to be imported once in your app
 
@@ -246,6 +247,8 @@ const Details: FunctionComponent<Props> = ({
             appId={app.id}
             stats={stats}
           ></AdditionalInfo>
+
+          <Permissions summary={summary} appId={app.id}></Permissions>
 
           {developerApps && developerApps.length > 0 && (
             <ApplicationSection
