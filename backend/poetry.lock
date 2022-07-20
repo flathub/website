@@ -497,7 +497,7 @@ tests = ["pytest (>=6.0.0,<7.0.0)", "coverage[toml] (==5.0.4)"]
 
 [[package]]
 name = "pylint"
-version = "2.14.4"
+version = "2.14.5"
 description = "python code static checker"
 category = "dev"
 optional = false
@@ -848,7 +848,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "eff73c0e6f716d5cc37326e700604e8c526901ce513e56380bd4b495366ebd65"
+content-hash = "6c301cd24905253c63b3cfb0c9ca6643862d043f6076e7c80da166343e3f338e"
 
 [metadata.files]
 alembic = [
@@ -1480,8 +1480,8 @@ pyjwt = [
     {file = "PyJWT-2.4.0.tar.gz", hash = "sha256:d42908208c699b3b973cbeb01a969ba6a96c821eefb1c5bfe4c390c01d67abba"},
 ]
 pylint = [
-    {file = "pylint-2.14.4-py3-none-any.whl", hash = "sha256:89b61867db16eefb7b3c5b84afc94081edaf11544189e2b238154677529ad69f"},
-    {file = "pylint-2.14.4.tar.gz", hash = "sha256:47705453aa9dce520e123a7d51843d5f0032cbfa06870f89f00927aa1f735a4a"},
+    {file = "pylint-2.14.5-py3-none-any.whl", hash = "sha256:fabe30000de7d07636d2e82c9a518ad5ad7908590fe135ace169b44839c15f90"},
+    {file = "pylint-2.14.5.tar.gz", hash = "sha256:487ce2192eee48211269a0e976421f334cf94de1806ca9d0a99449adcdf0285e"},
 ]
 pynacl = [
     {file = "PyNaCl-1.5.0-cp36-abi3-macosx_10_10_universal2.whl", hash = "sha256:401002a4aaa07c9414132aaed7f6836ff98f59277a234704ff66878c2ee4a0d1"},
