@@ -9,14 +9,14 @@ import {
 } from "react"
 import { toast } from "react-toastify"
 import { getAppVendingSetup, initiateAppPayment } from "../../../asyncs/vending"
-import { STRIPE_MAX_PAYMENT } from "../../../env"
+import { FLATHUB_MIN_PAYMENT, STRIPE_MAX_PAYMENT } from "../../../env"
 import { useAsync } from "../../../hooks/useAsync"
-import { getIntlLocale } from "../../../localize"
 import { Appstream } from "../../../types/Appstream"
 import { NumericInputValue } from "../../../types/Input"
 import { VendingConfig } from "../../../types/Vending"
+import { formatCurrency } from "../../../utils/localize"
 import Button from "../../Button"
-import CurrencyInput from "../../CurrencyInput"
+import * as Currency from "../../currency"
 import Spinner from "../../Spinner"
 import VendingSharesPreview from "./VendingSharesPreview"
 
@@ -111,36 +111,48 @@ const PurchaseControls: FunctionComponent<Props> = ({ app, vendingConfig }) => {
   }
 
   // Obtain currency values for display
-  const formatter = new Intl.NumberFormat(
-    getIntlLocale(i18n.language).toString(),
-    {
-      style: "currency",
-      currency: "USD",
-      currencyDisplay: "symbol",
-    },
+  const prettyMinimum = formatCurrency(
+    vendingSetup.minimum_payment / 100,
+    i18n.language,
+  )
+  const prettyRecommended = formatCurrency(
+    vendingSetup.recommended_donation / 100,
+    i18n.language,
   )
 
-  const prettyMinimum = formatter.format(vendingSetup.minimum_payment / 100)
-  const prettyRecommended = formatter.format(
-    vendingSetup.recommended_donation / 100,
-  )
+  const canSubmit =
+    amount.live * 100 >= vendingSetup.minimum_payment &&
+    amount.live >= FLATHUB_MIN_PAYMENT &&
+    amount.live <= STRIPE_MAX_PAYMENT
+
+  // When the minimum payment is 0, the application does not require payment
+  const isDonationOnly = vendingSetup.minimum_payment === 0
 
   return (
     <form
       className="my-5 mx-0 flex flex-col gap-5 rounded-xl bg-bgColorSecondary p-5"
       onSubmit={handleSubmit}
     >
-      <p>
-        {t("app-payment-information", {
-          minvalue: prettyMinimum,
-          recvalue: prettyRecommended,
-        })}
-      </p>
-      <h4 className="m-0">{t("select-purchase-amount")}</h4>
-      <CurrencyInput
+      {!isDonationOnly && (
+        <p>
+          {t("app-payment-information", {
+            minvalue: prettyMinimum,
+            recvalue: prettyRecommended,
+          })}
+        </p>
+      )}
+      <h4 className="m-0">
+        {t(
+          isDonationOnly ? "select-donation-amount" : "select-purchase-amount",
+        )}
+      </h4>
+      <Currency.Input inputValue={amount} setValue={setAmount} />
+      <Currency.MinMaxError
         value={amount}
-        setValue={setAmount}
-        minimum={vendingSetup.minimum_payment / 100}
+        minimum={Math.max(
+          vendingSetup.minimum_payment / 100,
+          FLATHUB_MIN_PAYMENT,
+        )}
         maximum={STRIPE_MAX_PAYMENT}
       />
       <VendingSharesPreview
@@ -150,8 +162,8 @@ const PurchaseControls: FunctionComponent<Props> = ({ app, vendingConfig }) => {
         vendingConfig={vendingConfig}
       />
       <div>
-        <Button disabled={vendingSetup.minimum_payment > amount.live * 100}>
-          {t("kind-purchase")}
+        <Button disabled={!canSubmit}>
+          {t(isDonationOnly ? "make-donation" : "kind-purchase")}
         </Button>
       </div>
     </form>

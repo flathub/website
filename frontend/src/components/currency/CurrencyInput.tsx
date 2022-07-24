@@ -1,49 +1,41 @@
-import { useTranslation } from "next-i18next"
 import {
+  DetailedHTMLProps,
   FormEvent,
+  forwardRef,
   FunctionComponent,
+  InputHTMLAttributes,
   useCallback,
   useEffect,
   useState,
 } from "react"
-import { NumericInputValue } from "../types/Input"
+import { NumericInputValue } from "../../types/Input"
 
-interface Props {
-  value: NumericInputValue
+type Props = {
+  inputValue: NumericInputValue
   setValue: React.Dispatch<React.SetStateAction<NumericInputValue>>
-  minimum?: number
-  maximum?: number
-}
+} & DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>
 
 /**
  * An input for currency in a form.
  *
  * The user input will be constrained to positive values with 2 decimal places.
- * The minimum and maximum are not enforced, but visual feedback is given if they are violated.
  *
  * This is expected to be used as a controlled component, the state of which is lifted to the parent component.
  * The parent component must apply any further constraint or feedback desired (e.g. disable form submission).
  */
-const CurrencyInput: FunctionComponent<Props> = ({
-  value,
-  setValue,
-  minimum = 0,
-  maximum = Number.MAX_VALUE,
-}) => {
-  const { t } = useTranslation()
-
+const CurrencyInput: FunctionComponent<Props> = forwardRef<
+  HTMLInputElement,
+  Props
+>(({ inputValue, setValue, ...inputProps }, ref) => {
   // String state used to allow temporary invalid numeric states (e.g. entering leading decimal)
-  const [userInput, setUserInput] = useState(value.live.toFixed(2))
-
-  const [minError, setMinError] = useState(false)
-  const [maxError, setMaxError] = useState(false)
+  const [userInput, setUserInput] = useState(inputValue.live.toFixed(2))
 
   // Whenever a new value is settled the input should reflect it
   // Using an effect enables this to be set externally too
   useEffect(() => {
     // Always show cent value for consistency (removes ambiguity)
-    setUserInput(value.settled.toFixed(2))
-  }, [value.settled])
+    setUserInput(inputValue.settled.toFixed(2))
+  }, [inputValue.settled])
 
   const handleChange = useCallback(
     (event: FormEvent<HTMLInputElement>) => {
@@ -58,17 +50,9 @@ const CurrencyInput: FunctionComponent<Props> = ({
       const numeric = Number(text)
       const live = isNaN(numeric) ? 0 : numeric
 
-      setValue({ ...value, live })
-
-      // Removing error feedback on changes helps user to correct their input
-      if (minError) {
-        setMinError(live < minimum)
-      }
-      if (maxError) {
-        setMaxError(live > maximum)
-      }
+      setValue({ ...inputValue, live })
     },
-    [minimum, maximum, value, minError, maxError, setValue],
+    [inputValue, setValue],
   )
 
   const handleBlur = useCallback(
@@ -78,13 +62,9 @@ const CurrencyInput: FunctionComponent<Props> = ({
       // Treat lone decimal point as 0 value
       const settled = isNaN(numeric) ? 0 : numeric
 
-      setValue({ ...value, settled })
-
-      // Showing error feedback on blur avoids user annoyance during input
-      setMinError(settled < minimum)
-      setMaxError(settled > maximum)
+      setValue({ ...inputValue, settled })
     },
-    [minimum, maximum, value, setValue],
+    [inputValue, setValue],
   )
 
   return (
@@ -97,21 +77,16 @@ const CurrencyInput: FunctionComponent<Props> = ({
         value={userInput}
         onChange={handleChange}
         onBlur={handleBlur}
-        className={`rounded-xl border-none bg-bgColorPrimary p-2 pl-7 text-textPrimary ${
-          minError || maxError
-            ? "outline outline-2 outline-colorDanger"
-            : "outline-none"
-        }`}
+        ref={ref}
+        className={
+          "rounded-xl border-none bg-bgColorPrimary p-2 pl-7 text-textPrimary outline-none"
+        }
+        {...inputProps}
       />
-      {(minError || maxError) && (
-        <p role="alert" className="my-2 text-colorDanger">
-          {t(minError ? "value-at-least" : "value-at-most", {
-            value: `$${minError ? minimum : maximum}`,
-          })}
-        </p>
-      )}
     </div>
   )
-}
+})
+
+CurrencyInput.displayName = "CurrencyInput"
 
 export default CurrencyInput

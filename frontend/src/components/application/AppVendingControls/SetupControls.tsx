@@ -9,14 +9,15 @@ import {
 } from "react"
 import { toast } from "react-toastify"
 import { getAppVendingSetup, setAppVendingSetup } from "../../../asyncs/vending"
-import { STRIPE_MAX_PAYMENT } from "../../../env"
+import { FLATHUB_MIN_PAYMENT, STRIPE_MAX_PAYMENT } from "../../../env"
 import { useAsync } from "../../../hooks/useAsync"
 import { Appstream } from "../../../types/Appstream"
 import { NumericInputValue } from "../../../types/Input"
 import { VendingConfig } from "../../../types/Vending"
 import Button from "../../Button"
-import CurrencyInput from "../../CurrencyInput"
+import * as Currency from "../../currency"
 import Spinner from "../../Spinner"
+import Toggle from "../../Toggle"
 import AppShareSlider from "./AppShareSlider"
 import VendingSharesPreview from "./VendingSharesPreview"
 
@@ -31,6 +32,9 @@ interface Props {
  */
 const SetupControls: FunctionComponent<Props> = ({ app, vendingConfig }) => {
   const { t } = useTranslation()
+
+  const [vendingEnabled, setVendingEnabled] = useState(false)
+  const [requirePayment, setRequirePayment] = useState(false)
 
   // Need existing app vending configuration to initialise controls
   const {
@@ -54,8 +58,14 @@ const SetupControls: FunctionComponent<Props> = ({ app, vendingConfig }) => {
   // Controls should initialise to existing setup once known
   useEffect(() => {
     if (vendingSetup) {
-      const decimalRecommendation = vendingSetup.recommended_donation / 100
-      const decimalMinimum = vendingSetup.minimum_payment / 100
+      const decimalRecommendation = Math.max(
+        vendingSetup.recommended_donation / 100,
+        FLATHUB_MIN_PAYMENT,
+      )
+      const decimalMinimum = Math.max(
+        vendingSetup.minimum_payment / 100,
+        FLATHUB_MIN_PAYMENT,
+      )
 
       setAppShare(vendingSetup.appshare)
       setRecommendedDonation({
@@ -66,6 +76,8 @@ const SetupControls: FunctionComponent<Props> = ({ app, vendingConfig }) => {
         live: decimalMinimum,
         settled: decimalMinimum,
       })
+      setRequirePayment(vendingSetup.minimum_payment > 0)
+      setVendingEnabled(vendingSetup.recommended_donation > 0)
     }
   }, [vendingSetup])
 
@@ -80,10 +92,20 @@ const SetupControls: FunctionComponent<Props> = ({ app, vendingConfig }) => {
         setAppVendingSetup(app.id, {
           currency: "usd",
           appshare: appShare,
-          minimum_payment: minPayment.settled * 100,
-          recommended_donation: recommendedDonation.settled * 100,
+          minimum_payment:
+            vendingEnabled && requirePayment ? minPayment.settled * 100 : 0,
+          recommended_donation: vendingEnabled
+            ? recommendedDonation.settled * 100
+            : 0,
         }),
-      [app.id, appShare, minPayment, recommendedDonation],
+      [
+        app.id,
+        appShare,
+        minPayment,
+        recommendedDonation,
+        vendingEnabled,
+        requirePayment,
+      ],
     ),
     false,
   )
@@ -108,6 +130,15 @@ const SetupControls: FunctionComponent<Props> = ({ app, vendingConfig }) => {
     [submit],
   )
 
+  const isValidRecommended =
+    (!requirePayment || recommendedDonation.live >= minPayment.live) &&
+    recommendedDonation.live >= FLATHUB_MIN_PAYMENT &&
+    recommendedDonation.live <= STRIPE_MAX_PAYMENT
+
+  const isValidState =
+    isValidRecommended &&
+    (!requirePayment || minPayment.live >= FLATHUB_MIN_PAYMENT)
+
   if (
     ["pending", "idle"].includes(status) ||
     ["pending"].includes(submitStatus)
@@ -124,44 +155,73 @@ const SetupControls: FunctionComponent<Props> = ({ app, vendingConfig }) => {
         className="flex flex-col gap-6 rounded-xl bg-bgColorSecondary p-4"
         onSubmit={handleSubmit}
       >
-        <div>
-          <label>{t("recommended-payment")}</label>
-          <CurrencyInput
-            value={recommendedDonation}
-            setValue={setRecommendedDonation}
-            maximum={STRIPE_MAX_PAYMENT}
-          />
-          {minPayment.settled > recommendedDonation.live && (
-            <p role="alert" className="my-2 text-colorDanger">
-              {t("value-at-least", { value: minPayment.settled })}
-            </p>
-          )}
+        <div className="flex gap-3 border-b border-slate-400/20 pb-3">
+          <label>{t("enable-app-vending")}</label>
+          <Toggle enabled={vendingEnabled} setEnabled={setVendingEnabled} />
         </div>
         <div>
-          <label>{t("minimum-payment")}</label>
-          <CurrencyInput
-            value={minPayment}
-            setValue={setMinPayment}
+          <label>{t("recommended-payment")}</label>
+          <Currency.Input
+            inputValue={recommendedDonation}
+            setValue={setRecommendedDonation}
+            disabled={!vendingEnabled}
+          />
+          <Currency.MinMaxError
+            value={recommendedDonation}
+            minimum={Math.max(
+              FLATHUB_MIN_PAYMENT,
+              requirePayment ? minPayment.settled : 0,
+            )}
             maximum={STRIPE_MAX_PAYMENT}
           />
         </div>
         <div>
           <label>{t("application-share")}</label>
-          <AppShareSlider value={appShare} setValue={setAppShare} />
-        </div>
-        <div>
-          <VendingSharesPreview
-            price={recommendedDonation.live * 100}
-            app={app}
-            appShare={appShare}
-            vendingConfig={vendingConfig}
+          <AppShareSlider
+            value={appShare}
+            setValue={setAppShare}
+            disabled={!vendingEnabled}
           />
         </div>
+        {vendingEnabled && (
+          <div>
+            <VendingSharesPreview
+              price={recommendedDonation.live * 100}
+              app={app}
+              appShare={appShare}
+              vendingConfig={vendingConfig}
+            />
+          </div>
+        )}
+        <div className="flex gap-3 border-t border-slate-400/20 pt-3">
+          <label>{t("require-payment")}</label>
+          <Toggle enabled={requirePayment} setEnabled={setRequirePayment} />
+        </div>
         <div>
-          <Button
-            disabled={minPayment.live > recommendedDonation.live}
-            type="submit"
-          >
+          <label>{t("minimum-payment")}</label>
+          <Currency.Input
+            inputValue={minPayment}
+            setValue={setMinPayment}
+            disabled={!vendingEnabled || !requirePayment}
+          />
+          <Currency.MinMaxError
+            value={minPayment}
+            minimum={FLATHUB_MIN_PAYMENT}
+            maximum={STRIPE_MAX_PAYMENT}
+          />
+        </div>
+        {vendingEnabled && requirePayment && (
+          <div>
+            <VendingSharesPreview
+              price={minPayment.live * 100}
+              app={app}
+              appShare={appShare}
+              vendingConfig={vendingConfig}
+            />
+          </div>
+        )}
+        <div className="border-t border-slate-400/20 pt-3">
+          <Button disabled={!isValidState} type="submit">
             {t("confirm-settings")}
           </Button>
         </div>
